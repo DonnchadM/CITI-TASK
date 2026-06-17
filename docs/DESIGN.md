@@ -149,7 +149,10 @@ satisfied via the JSONB field on its parent resource.
   Access claims: `sub, role, email, iat, exp, ver`. Role in the token → stateless authorization.
 - **Revocation** via `token_version` (claim `ver` checked against the user's value): bumping it
   forces logout on password/role change or explicit logout — no token store needed.
-- HS256 + server secret (RS256 = scale option). Passwords hashed with **bcrypt**.
+- HS256 + server secret (RS256 = scale option). Passwords hashed with **PBKDF2-HMAC-SHA256**
+  (stdlib `hashlib`, per-password salt, high iteration count — Django's default scheme). Chosen
+  over bcrypt because bcrypt's compiled wheel is glibc-bound and fails to load in the LocalStack
+  Lambda runtime; a stdlib hasher loads identically across LocalStack, AWS, and tests.
 
 **Permission matrix:**
 

@@ -45,3 +45,23 @@ variable "aws_mongo_host" {
   type        = string
   default     = null
 }
+
+variable "jwt_secret" {
+  description = "Secret used to sign JWT access/refresh tokens. Set a strong value for AWS (e.g. TF_VAR_jwt_secret)."
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "admin_email" {
+  description = "Bootstrap admin email, seeded on first run if no admin exists."
+  type        = string
+  default     = "admin@coding-workshop.local"
+}
+
+variable "admin_password" {
+  description = "Bootstrap admin password, seeded on first run. Set a strong value for AWS (e.g. TF_VAR_admin_password)."
+  type        = string
+  default     = ""
+  sensitive   = true
+}

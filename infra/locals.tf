@@ -88,6 +88,11 @@ locals {
     MONGO_NAME    = data.aws_caller_identity.this.id == "000000000000" ? "mongo" : try(element(aws_docdb_cluster.this.*.database_name, 0), "")
     MONGO_USER    = data.aws_caller_identity.this.id == "000000000000" ? "" : try(element(aws_docdb_cluster.this.*.master_username, 0), "")
     MONGO_PASS    = data.aws_caller_identity.this.id == "000000000000" ? "" : try(element(aws_docdb_cluster.this.*.master_password, 0), "")
+    # Auth secrets follow the same IS_LOCAL-branched env-var convention as the DB
+    # credentials: literals locally, injected variables (Secrets Manager) on AWS.
+    JWT_SECRET     = data.aws_caller_identity.this.id == "000000000000" ? "local-dev-jwt-secret-change-me" : var.jwt_secret
+    ADMIN_EMAIL    = var.admin_email
+    ADMIN_PASSWORD = data.aws_caller_identity.this.id == "000000000000" ? "ChangeMe123!" : var.admin_password
   }
   iam_arns = [
     format("arn:%s:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole", data.aws_partition.this.partition),
