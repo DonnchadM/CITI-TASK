@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import {
-  AppBar, Box, Drawer, IconButton, List, ListItemButton, ListItemIcon,
+  AppBar, Box, Chip, Drawer, IconButton, List, ListItemButton, ListItemIcon,
   ListItemText, Toolbar, Typography, Divider, Button, useMediaQuery,
 } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
+import CloudOffIcon from '@mui/icons-material/CloudOff';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import PeopleIcon from '@mui/icons-material/People';
 import GroupsIcon from '@mui/icons-material/Groups';
@@ -14,6 +15,7 @@ import LogoutIcon from '@mui/icons-material/Logout';
 import { useTheme } from '@mui/material/styles';
 import { Link as RouterLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
+import { useOnlineStatus } from '../hooks/useOnlineStatus';
 
 const DRAWER_WIDTH = 240;
 
@@ -31,6 +33,7 @@ export function AppLayout() {
   const isDesktop = useMediaQuery(theme.breakpoints.up('md'));
   const [mobileOpen, setMobileOpen] = useState(false);
   const { user, logout } = useAuth();
+  const online = useOnlineStatus();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -85,6 +88,15 @@ export function AppLayout() {
           <Typography variant="h6" noWrap sx={{ flexGrow: 1 }}>
             Team Management
           </Typography>
+          {!online && (
+            <Chip
+              icon={<CloudOffIcon />}
+              label="Offline"
+              color="warning"
+              size="small"
+              sx={{ mr: 2 }}
+            />
+          )}
           {user && (
             <Typography variant="body2" sx={{ mr: 2, display: { xs: 'none', sm: 'block' } }}>
               {user.email} · {user.role}

@@ -1,4 +1,5 @@
 import { Routes, Route } from 'react-router-dom';
+import { PwaReloadPrompt } from './components/PwaReloadPrompt';
 import { AppLayout } from './components/AppLayout';
 import { RequireAuth } from './components/RequireAuth';
 import { RequireRole } from './components/RequireRole';
@@ -13,6 +14,7 @@ import { NotFoundPage } from './pages/NotFoundPage';
 
 export default function App() {
   return (
+    <>
     <Routes>
       <Route path="/login" element={<LoginPage />} />
 
@@ -40,5 +42,7 @@ export default function App() {
 
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
+    <PwaReloadPrompt />
+    </>
   );
 }

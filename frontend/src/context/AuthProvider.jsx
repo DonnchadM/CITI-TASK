@@ -1,12 +1,23 @@
 import { useCallback, useEffect, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { authApi } from '../services/auth';
 import { setOnUnauthorized, tokenStore } from '../services/apiClient';
 import { AuthContext } from './auth-context';
+
+// Clear cached data on logout: TanStack Query state and the PWA's API cache.
+async function clearCaches(queryClient) {
+  queryClient.clear();
+  if ('caches' in window) {
+    const keys = await caches.keys();
+    await Promise.all(keys.map((key) => caches.delete(key)));
+  }
+}
 
 // Tracks the authenticated user (with role) and exposes login/logout. The token
 // lives in the apiClient's tokenStore; this provider keeps the user in sync and
 // reacts to forced logouts (refresh failure) via setOnUnauthorized.
 export function AuthProvider({ children }) {
+  const queryClient = useQueryClient();
   const [user, setUser] = useState(null);
   // Only "loading" if there's a token to validate on mount.
   const [loading, setLoading] = useState(() => !!tokenStore.access);
@@ -56,6 +67,7 @@ export function AuthProvider({ children }) {
     }
     tokenStore.clear();
     setUser(null);
+    await clearCaches(queryClient);
   };
 
   return (
