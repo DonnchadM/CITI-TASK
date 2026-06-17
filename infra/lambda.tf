@@ -1,7 +1,39 @@
+# Shared Python module delivered as a Lambda layer (single source of truth for
+# DB access, HTTP helpers, and error mapping). Built from backend/_shared/shared
+# and placed under python/shared so it resolves as `import shared` at runtime.
+module "shared_layer" {
+  source  = "terraform-aws-modules/lambda/aws"
+  version = "~> 8.0"
+
+  create_function = false
+  create_layer    = true
+
+  layer_name          = format("%s-shared-%s", var.aws_project, local.app_id)
+  description         = "Shared backend module (db, http, errors)"
+  runtime             = "python3.11"
+  compatible_runtimes = ["python3.11"]
+
+  build_in_docker = false
+  store_on_s3     = data.aws_caller_identity.this.id != "000000000000"
+  s3_bucket       = data.aws_caller_identity.this.id != "000000000000" ? aws_s3_bucket.this.id : null
+  s3_prefix       = data.aws_caller_identity.this.id != "000000000000" ? format("layer/%s/shared/", local.app_id) : null
+
+  source_path = [{
+    path          = abspath("${path.module}/../backend/_shared/shared")
+    prefix_in_zip = "python/shared"
+    patterns      = ["!__pycache__/.*", "!\\..*"]
+  }]
+
+  tags = local.app_tags
+}
+
 module "lambda" {
   for_each = local.function_names
   source   = "terraform-aws-modules/lambda/aws"
   version  = "~> 8.0"
+
+  # Python services receive the shared module via the layer; other runtimes do not.
+  layers = try(each.value.runtime, "") == "python3.11" ? [module.shared_layer.lambda_layer_arn] : null
 
   function_name   = format("%s-%s-%s", var.aws_project, each.value.name, local.app_id)
   package_type    = "Zip"

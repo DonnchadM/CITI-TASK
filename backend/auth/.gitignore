@@ -1,0 +1,10 @@
+# Python dependencies are vendored into this folder by bin/start-dev.sh for
+# LocalStack hot-reload (and bundled into the Lambda zip on deploy). They are
+# build artifacts; only the source files listed below are tracked.
+*
+!.gitignore
+!function.py
+!models.py
+!repository.py
+!security.py
+!requirements.txt
