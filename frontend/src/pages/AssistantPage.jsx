@@ -26,10 +26,16 @@ export function AssistantPage() {
     ask.mutate(text);
   };
 
+  // The assistant degrades gracefully: a missing key or a blocked network path
+  // are expected environment states, shown as calm info rather than a hard error.
+  const code = ask.error?.code;
+  const isInfo = code === 'assistant_unavailable' || code === 'assistant_unreachable';
   const errorMessage = ask.isError
-    ? (ask.error?.status === 503
+    ? (code === 'assistant_unavailable'
       ? 'The AI assistant isn’t configured on this environment (no API key). It’s built and works where a key is set.'
-      : (ask.error?.message || 'Something went wrong. Please try again.'))
+      : code === 'assistant_unreachable'
+        ? 'The AI assistant needs outbound internet to reach the model, which this environment’s network doesn’t provide. It’s fully built and runs where egress is available (e.g. local development) — see the self-assessment for details.'
+        : (ask.error?.message || 'Something went wrong. Please try again.'))
     : null;
 
   return (
@@ -74,7 +80,7 @@ export function AssistantPage() {
         ))}
       </Stack>
 
-      {errorMessage && <Alert severity={ask.error?.status === 503 ? 'info' : 'error'}>{errorMessage}</Alert>}
+      {errorMessage && <Alert severity={isInfo ? 'info' : 'error'}>{errorMessage}</Alert>}
 
       {ask.isSuccess && (
         <Paper variant="outlined" sx={{ p: 3 }}>

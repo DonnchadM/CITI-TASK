@@ -41,6 +41,18 @@ class AssistantUnavailable(AppError):
     default_message = "The AI assistant is not configured. Set ANTHROPIC_API_KEY."
 
 
+class AssistantUnreachable(AppError):
+    """The model API is unreachable from this environment, e.g. no outbound internet (HTTP 503)."""
+
+    status_code = 503
+    code = "assistant_unreachable"
+    default_message = (
+        "The AI assistant can't reach the model from this environment. It needs outbound "
+        "internet access, which this deployment's network doesn't provide. The feature is "
+        "built and runs where egress is available."
+    )
+
+
 def route(request: Request) -> dict:
     ensure_schema()
     authenticate(request)  # any authenticated user may ask (read-only)
@@ -86,6 +98,9 @@ def _ask(question: str):
             messages.append({"role": "user", "content": results})
     except anthropic.AuthenticationError:
         raise AssistantUnavailable("The AI assistant's API key is invalid.")
+    except anthropic.APIConnectionError:
+        # No network path to api.anthropic.com (e.g. a VPC Lambda with no egress).
+        raise AssistantUnreachable()
     except anthropic.APIError as exc:
         raise AppError(f"The AI assistant is temporarily unavailable: {exc}")
 
