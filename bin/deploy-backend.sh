@@ -50,6 +50,9 @@ ENVIRONMENT_CONFIG="$PROJECT_ROOT/ENVIRONMENT.config"
 INFRA_DIR="$PROJECT_ROOT/infra"
 ENVIRONMENT=${1:-"aws"}
 
+# Vendor the shared module into each service before packaging.
+"$SCRIPT_DIR/sync-shared.sh"
+
 echo "INFO: Deploying infrastructure..."
 echo "INFO: Environment - $ENVIRONMENT"
 
