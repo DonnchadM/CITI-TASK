@@ -58,17 +58,40 @@ cards (Q4–Q7) from `GET /analytics/summary` and a per-team table from
   degrades gracefully to a `503 assistant_unavailable`. Long answers also approach
   CloudFront's ~30s origin timeout, so the model runs at low effort with a capped
   tool-call loop.
+- **AI assistant cannot reach Anthropic from the cloud (network constraint, not a
+  code defect).** The `assistant` Lambda runs inside the VPC because it needs
+  in-VPC access to Aurora. The workshop VPC provides no internet egress for
+  Lambdas: public subnets give a Lambda no public IP, and the private subnets have
+  no NAT gateway — verified directly, their route tables carry only a `local` route
+  plus S3/interface VPC endpoints, with no `0.0.0.0/0` to the internet. So
+  `api.anthropic.com` is unreachable and the call fails with the SDK's
+  `APIConnectionError` ("Connection error") after its retry/backoff (~18s, visible
+  in CloudWatch — the request never leaves the VPC, so nothing appears in the
+  Anthropic console). The service is fully functional on LocalStack (Docker has
+  egress) and verified end-to-end there with a real key. It would work in the cloud
+  with any Lambda internet path — a NAT gateway on the private subnets, or moving
+  the function out of the VPC and reaching data over the public Function URLs
+  instead of a direct DB connection. Both were judged out of scope for this
+  submission (NAT adds cost and is likely outside the participant role's
+  permissions; the out-of-VPC rework is a design change for an optional feature).
 - **Frontend bundle size.** The production bundle is a single ~700 KB chunk (MUI);
   route-level code-splitting would reduce it. Functional, not yet optimized.
 - **PWA service worker is build-only.** It's disabled in `npm run dev` (to avoid
   caching during development) and active in production builds; the offline
   *indicator* works in dev.
-- **No "Ask the org" UI yet.** The assistant is exposed via the API and verified
-  end-to-end, but a frontend page for it is not yet built.
-- **Automated tests are not yet written.** The build was verified through
-  scripted API/integration checks (status codes, RBAC, revocation, referential
-  integrity, and the analytics KPIs asserted against a crafted org) rather than a
-  committed pytest/Jest/Cypress suite.
+
+## Testing
+
+- **Backend** — `pytest` suite under [backend/tests/](../backend/tests): unit tests
+  for the shared layer (error→HTTP mapping, request parsing/validation, JWT + RBAC,
+  PBKDF2, Pydantic models) plus HTTP-integration tests that exercise the live
+  endpoints (auth flow, RBAC enforcement, token revocation, referential integrity,
+  and the analytics KPIs asserted against a crafted org).
+- **Frontend** — Vitest + React Testing Library + MSW (Vite-native, chosen over
+  Jest to share the build pipeline): component/behaviour tests for the permission
+  gating, API client (JWT inject + 401→refresh→retry), and key pages.
+- Both suites run in CI ([.github/workflows](../.github/workflows)) alongside the
+  Bandit / `npm audit` security checks.
 
 ## What I learned
 
