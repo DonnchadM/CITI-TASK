@@ -65,3 +65,10 @@ variable "admin_password" {
   default     = ""
   sensitive   = true
 }
+
+variable "anthropic_api_key" {
+  description = "Anthropic API key for the AI assistant service (e.g. TF_VAR_anthropic_api_key). Empty disables the assistant."
+  type        = string
+  default     = ""
+  sensitive   = true
+}
