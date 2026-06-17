@@ -30,6 +30,16 @@ export function setOnUnauthorized(handler) {
   onUnauthorized = handler;
 }
 
+// Build a query string from a params object, skipping empty/null values.
+export function toQuery(params) {
+  const search = new URLSearchParams();
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== '') search.append(key, value);
+  });
+  const str = search.toString();
+  return str ? `?${str}` : '';
+}
+
 export class ApiError extends Error {
   constructor(status, payload) {
     super(payload?.error?.message || 'Request failed');

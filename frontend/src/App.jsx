@@ -4,6 +4,9 @@ import { RequireAuth } from './components/RequireAuth';
 import { RequireRole } from './components/RequireRole';
 import { LoginPage } from './pages/LoginPage';
 import { DashboardPage } from './pages/DashboardPage';
+import { PeoplePage } from './pages/PeoplePage';
+import { TeamsPage } from './pages/TeamsPage';
+import { AchievementsPage } from './pages/AchievementsPage';
 import { PlaceholderPage } from './pages/PlaceholderPage';
 import { NotFoundPage } from './pages/NotFoundPage';
 
@@ -20,9 +23,9 @@ export default function App() {
         }
       >
         <Route path="/" element={<DashboardPage />} />
-        <Route path="/people" element={<PlaceholderPage title="People" />} />
-        <Route path="/teams" element={<PlaceholderPage title="Teams" />} />
-        <Route path="/achievements" element={<PlaceholderPage title="Achievements" />} />
+        <Route path="/people" element={<PeoplePage />} />
+        <Route path="/teams" element={<TeamsPage />} />
+        <Route path="/achievements" element={<AchievementsPage />} />
         <Route path="/profile" element={<PlaceholderPage title="Profile" />} />
         <Route
           path="/admin/users"
