@@ -24,4 +24,27 @@ jobs:
         run: pip3 install bandit
 
       - name: Run Bandit
-        run: bandit -r ./backend
+        run: bandit -r ./backend -x ./backend/tests
+
+  pytest:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Setup GitHub Actions
+        uses: actions/checkout@master
+
+      - name: Install Python
+        uses: actions/setup-python@master
+        with:
+          python-version: '3.11'
+
+      - name: Install test dependencies
+        run: pip3 install -r backend/tests/requirements.txt
+
+      # Unit tests run here; integration tests auto-skip (the local stack
+      # isn't reachable in CI).
+      - name: Run pytest
+        run: cd backend/tests && python -m pytest
