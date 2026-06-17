@@ -7,7 +7,8 @@ import { DashboardPage } from './pages/DashboardPage';
 import { PeoplePage } from './pages/PeoplePage';
 import { TeamsPage } from './pages/TeamsPage';
 import { AchievementsPage } from './pages/AchievementsPage';
-import { PlaceholderPage } from './pages/PlaceholderPage';
+import { UsersPage } from './pages/UsersPage';
+import { ProfilePage } from './pages/ProfilePage';
 import { NotFoundPage } from './pages/NotFoundPage';
 
 export default function App() {
@@ -26,12 +27,12 @@ export default function App() {
         <Route path="/people" element={<PeoplePage />} />
         <Route path="/teams" element={<TeamsPage />} />
         <Route path="/achievements" element={<AchievementsPage />} />
-        <Route path="/profile" element={<PlaceholderPage title="Profile" />} />
+        <Route path="/profile" element={<ProfilePage />} />
         <Route
           path="/admin/users"
           element={
             <RequireRole roles={['ADMIN']}>
-              <PlaceholderPage title="User administration" />
+              <UsersPage />
             </RequireRole>
           }
         />
