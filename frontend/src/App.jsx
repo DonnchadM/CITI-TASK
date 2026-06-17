@@ -8,6 +8,7 @@ import { DashboardPage } from './pages/DashboardPage';
 import { PeoplePage } from './pages/PeoplePage';
 import { TeamsPage } from './pages/TeamsPage';
 import { AchievementsPage } from './pages/AchievementsPage';
+import { AssistantPage } from './pages/AssistantPage';
 import { UsersPage } from './pages/UsersPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { NotFoundPage } from './pages/NotFoundPage';
@@ -29,6 +30,7 @@ export default function App() {
         <Route path="/people" element={<PeoplePage />} />
         <Route path="/teams" element={<TeamsPage />} />
         <Route path="/achievements" element={<AchievementsPage />} />
+        <Route path="/assistant" element={<AssistantPage />} />
         <Route path="/profile" element={<ProfilePage />} />
         <Route
           path="/admin/users"
