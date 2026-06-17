@@ -93,6 +93,9 @@ locals {
     JWT_SECRET     = data.aws_caller_identity.this.id == "000000000000" ? "local-dev-jwt-secret-change-me" : var.jwt_secret
     ADMIN_EMAIL    = var.admin_email
     ADMIN_PASSWORD = data.aws_caller_identity.this.id == "000000000000" ? "ChangeMe123!" : var.admin_password
+    # AI assistant key (same in local and cloud). Empty values are filtered out
+    # by lambda.tf, which leaves the assistant service returning "not configured".
+    ANTHROPIC_API_KEY = var.anthropic_api_key
   }
   iam_arns = [
     format("arn:%s:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole", data.aws_partition.this.partition),
