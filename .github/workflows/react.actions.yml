@@ -25,3 +25,24 @@ jobs:
 
       - name: Run npm audit
         run: npm audit --prefix ./frontend --audit-level=high
+
+  vitest:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Setup GitHub Actions
+        uses: actions/checkout@master
+
+      - name: Setup Node.js
+        uses: actions/setup-node@master
+        with:
+          node-version: '24'
+
+      - name: Install npm dependencies
+        run: npm install --prefix ./frontend
+
+      - name: Run frontend tests
+        run: npm test --prefix ./frontend
