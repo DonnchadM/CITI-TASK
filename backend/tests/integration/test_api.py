@@ -119,7 +119,8 @@ def test_analytics_summary_shape(http, admin_token):
     status, summary = http("GET", "/analytics/summary", token=admin_token)
     assert status == 200
     for key in ("total_teams", "teams_leader_not_colocated", "teams_leader_non_direct",
-                "teams_high_non_direct_ratio", "teams_under_org_leader"):
+                "teams_high_non_direct_ratio", "teams_under_org_leader",
+                "total_achievements", "achievements_this_month"):
         assert isinstance(summary[key], int)
 
 
@@ -139,6 +140,25 @@ def test_analytics_flags_a_non_colocated_leader(http, admin_token):
     finally:
         http("DELETE", f"/teams/{tid}", token=admin_token)
         http("DELETE", f"/people/{pid}", token=admin_token)
+
+
+def test_analytics_counts_team_achievements(http, admin_token):
+    # A new team starts at 0 achievements; adding one is reflected per-team (Q3 overview).
+    _, team = http("POST", "/teams", token=admin_token, body={"name": uniq("Builders")})
+    tid = team["id"]
+
+    def count_for(team_id):
+        _, rows = http("GET", "/analytics/teams", token=admin_token)
+        return next(r for r in rows["data"] if r["team_id"] == team_id)["achievement_count"]
+
+    try:
+        assert count_for(tid) == 0
+        _, ach = http("POST", "/achievements", token=admin_token,
+                      body={"team_id": tid, "month": "2026-01-01", "title": uniq("Shipped")})
+        assert count_for(tid) == 1
+        http("DELETE", f"/achievements/{ach['id']}", token=admin_token)
+    finally:
+        http("DELETE", f"/teams/{tid}", token=admin_token)
 
 
 # --- assistant (no real model call: auth + validation only) ------------------
