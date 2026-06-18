@@ -8,6 +8,8 @@ import LocationOffIcon from '@mui/icons-material/LocationOff';
 import BadgeIcon from '@mui/icons-material/Badge';
 import PercentIcon from '@mui/icons-material/Percent';
 import AccountTreeIcon from '@mui/icons-material/AccountTree';
+import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
+import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import { analyticsApi } from '../services/analytics';
 import { KpiCard } from '../components/KpiCard';
 
@@ -18,6 +20,12 @@ const KPIS = [
   { key: 'teams_leader_non_direct', label: 'Leader is non-direct staff', icon: <BadgeIcon />, color: 'secondary.main' },
   { key: 'teams_high_non_direct_ratio', label: 'Non-direct ratio > 20%', icon: <PercentIcon />, color: 'error.main' },
   { key: 'teams_under_org_leader', label: 'Reporting to an org leader', icon: <AccountTreeIcon />, color: 'primary.main' },
+];
+
+// Achievement activity — a quick performance read alongside the structural KPIs.
+const ACHIEVEMENT_KPIS = [
+  { key: 'total_achievements', label: 'Total achievements', icon: <EmojiEventsIcon />, color: 'success.main' },
+  { key: 'achievements_this_month', label: 'Achievements this month', icon: <CalendarMonthIcon />, color: 'info.main' },
 ];
 
 function YesNo({ value }) {
@@ -53,6 +61,15 @@ export function DashboardPage() {
         ))}
       </Grid>
 
+      <Typography variant="h6" gutterBottom>Achievement activity</Typography>
+      <Grid container spacing={2} sx={{ mb: 4 }}>
+        {ACHIEVEMENT_KPIS.map((kpi) => (
+          <Grid key={kpi.key} size={{ xs: 12, sm: 6, md: 3 }}>
+            <KpiCard label={kpi.label} value={summary.data[kpi.key]} icon={kpi.icon} color={kpi.color} />
+          </Grid>
+        ))}
+      </Grid>
+
       <Typography variant="h6" gutterBottom>Per-team breakdown</Typography>
 
       {isMobile ? (
@@ -62,7 +79,7 @@ export function DashboardPage() {
               <CardContent>
                 <Typography variant="subtitle1">{t.team_name}</Typography>
                 <Typography variant="body2" color="text.secondary" gutterBottom>
-                  {t.team_location || '—'} · {t.member_count} members · {pct(t.non_direct_ratio)} non-direct
+                  {t.team_location || '—'} · {t.member_count} members · {t.achievement_count} achievements · {pct(t.non_direct_ratio)} non-direct
                 </Typography>
                 <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
                   {t.leader_not_colocated && <Chip size="small" color="warning" label="Leader off-site" />}
@@ -82,6 +99,7 @@ export function DashboardPage() {
                 <TableCell>Team</TableCell>
                 <TableCell>Location</TableCell>
                 <TableCell align="right">Members</TableCell>
+                <TableCell align="right">Achievements</TableCell>
                 <TableCell align="right">Non-direct</TableCell>
                 <TableCell align="center">Leader off-site</TableCell>
                 <TableCell align="center">Non-direct lead</TableCell>
@@ -94,6 +112,7 @@ export function DashboardPage() {
                   <TableCell>{t.team_name}</TableCell>
                   <TableCell>{t.team_location || '—'}</TableCell>
                   <TableCell align="right">{t.member_count}</TableCell>
+                  <TableCell align="right">{t.achievement_count}</TableCell>
                   <TableCell align="right">{pct(t.non_direct_ratio)}</TableCell>
                   <TableCell align="center"><YesNo value={t.leader_not_colocated} /></TableCell>
                   <TableCell align="center"><YesNo value={t.leader_is_non_direct} /></TableCell>
@@ -101,7 +120,7 @@ export function DashboardPage() {
                 </TableRow>
               ))}
               {teamRows.length === 0 && (
-                <TableRow><TableCell colSpan={7}><Typography color="text.secondary">No teams yet.</Typography></TableCell></TableRow>
+                <TableRow><TableCell colSpan={8}><Typography color="text.secondary">No teams yet.</Typography></TableCell></TableRow>
               )}
             </TableBody>
           </Table>
