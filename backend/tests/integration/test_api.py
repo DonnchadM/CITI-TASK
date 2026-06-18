@@ -161,6 +161,21 @@ def test_analytics_counts_team_achievements(http, admin_token):
         http("DELETE", f"/teams/{tid}", token=admin_token)
 
 
+def test_analytics_achievements_by_month_shape(http, admin_token):
+    status, body = http("GET", "/analytics/achievements-by-month", token=admin_token)
+    assert status == 200 and isinstance(body["data"], list)
+    for row in body["data"]:
+        assert set(row) >= {"month", "count"} and isinstance(row["count"], int)
+
+
+def test_analytics_promotions_scored(http, admin_token):
+    status, body = http("GET", "/analytics/promotions", token=admin_token)
+    assert status == 200 and isinstance(body["data"], list)
+    for row in body["data"]:
+        assert 0 <= row["readiness_score"] <= 100
+        assert row["band"] in ("Ready for review", "On track", "Early")
+
+
 # --- assistant (no real model call: auth + validation only) ------------------
 
 def test_assistant_requires_auth(http):

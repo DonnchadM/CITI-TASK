@@ -55,3 +55,48 @@ def get_team_analytics() -> List[dict]:
         if row.get("non_direct_ratio") is not None:
             row["non_direct_ratio"] = float(row["non_direct_ratio"])
     return rows
+
+
+_BY_MONTH_SQL = """
+    SELECT to_char(month, 'YYYY-MM') AS month, COUNT(*) AS count
+    FROM achievement
+    GROUP BY month
+    ORDER BY month
+"""
+
+
+def get_achievements_by_month() -> List[dict]:
+    """Achievement counts per calendar month, oldest first (for the trend graph)."""
+    with transaction() as cur:
+        cur.execute(_BY_MONTH_SQL)
+        return cur.fetchall()
+
+
+# Promotion readiness is NOT a domain concept in the data model — it's an
+# illustrative heuristic from data we do have: tenure (earliest membership) and
+# the achievement activity of the teams a person belongs to. Clearly labelled as
+# such in the UI; the weights are arbitrary-but-transparent and easy to tune.
+_PROMOTIONS_SQL = """
+    SELECT p.id AS person_id, p.name, p.title, p.staff_type,
+           COALESCE(
+             EXTRACT(YEAR  FROM age(now(), MIN(m.joined_at))) * 12 +
+             EXTRACT(MONTH FROM age(now(), MIN(m.joined_at))), 0)::int AS tenure_months,
+           COUNT(a.id) AS team_achievements
+    FROM person p
+    LEFT JOIN membership  m ON m.person_id = p.id
+    LEFT JOIN achievement a ON a.team_id = m.team_id
+    GROUP BY p.id, p.name, p.title, p.staff_type
+    ORDER BY p.name
+"""
+
+
+def get_promotion_readiness() -> List[dict]:
+    """Per-person readiness score (0-100) + band, from tenure and team achievements."""
+    with transaction() as cur:
+        cur.execute(_PROMOTIONS_SQL)
+        rows = cur.fetchall()
+    for row in rows:
+        score = min(100, row["tenure_months"] * 3 + row["team_achievements"] * 10)
+        row["readiness_score"] = score
+        row["band"] = "Ready for review" if score >= 70 else "On track" if score >= 40 else "Early"
+    return rows
