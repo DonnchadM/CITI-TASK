@@ -32,19 +32,44 @@ function YesNo({ value }) {
   return value ? <Chip size="small" color="warning" label="Yes" /> : <Chip size="small" label="No" variant="outlined" />;
 }
 
+// Lightweight horizontal bar chart (no charting dependency): label · bar · value.
+function MiniBars({ rows, color = 'primary.main' }) {
+  if (!rows.length) return <Typography variant="body2" color="text.secondary">No data yet.</Typography>;
+  const max = Math.max(1, ...rows.map((r) => r.value));
+  return (
+    <Stack spacing={1.2}>
+      {rows.map((r) => (
+        <Box key={r.label} sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+          <Typography variant="body2" sx={{ width: 120, flexShrink: 0 }} noWrap title={r.label}>{r.label}</Typography>
+          <Box sx={{ flexGrow: 1, bgcolor: 'action.hover', borderRadius: 1, overflow: 'hidden' }}>
+            <Box sx={{ width: `${(r.value / max) * 100}%`, minWidth: r.value ? 6 : 0, height: 18, bgcolor: color, borderRadius: 1 }} />
+          </Box>
+          <Typography variant="body2" sx={{ width: 28, textAlign: 'right' }}>{r.value}</Typography>
+        </Box>
+      ))}
+    </Stack>
+  );
+}
+
 export function DashboardPage() {
   const isMobile = useMediaQuery({ maxWidth: 600 });
   const summary = useQuery({ queryKey: ['analytics', 'summary'], queryFn: analyticsApi.summary });
   const teams = useQuery({ queryKey: ['analytics', 'teams'], queryFn: analyticsApi.teams });
+  const byMonth = useQuery({ queryKey: ['analytics', 'by-month'], queryFn: analyticsApi.achievementsByMonth });
 
-  if (summary.isLoading || teams.isLoading) {
+  if (summary.isLoading || teams.isLoading || byMonth.isLoading) {
     return <Box sx={{ display: 'flex', justifyContent: 'center', mt: 8 }}><CircularProgress /></Box>;
   }
-  if (summary.isError || teams.isError) {
+  if (summary.isError || teams.isError || byMonth.isError) {
     return <Alert severity="error">Could not load analytics. Please try again.</Alert>;
   }
 
   const teamRows = teams.data?.data || [];
+  const byTeamBars = teamRows
+    .map((t) => ({ label: t.team_name, value: t.achievement_count }))
+    .sort((a, b) => b.value - a.value)
+    .slice(0, 8);
+  const byMonthBars = (byMonth.data?.data || []).map((m) => ({ label: m.month, value: m.count }));
 
   return (
     <Box>
@@ -68,6 +93,21 @@ export function DashboardPage() {
             <KpiCard label={kpi.label} value={summary.data[kpi.key]} icon={kpi.icon} color={kpi.color} />
           </Grid>
         ))}
+      </Grid>
+
+      <Grid container spacing={2} sx={{ mb: 4 }}>
+        <Grid size={{ xs: 12, md: 6 }}>
+          <Paper variant="outlined" sx={{ p: 2, height: '100%' }}>
+            <Typography variant="subtitle1" gutterBottom>Achievements by team</Typography>
+            <MiniBars rows={byTeamBars} color="success.main" />
+          </Paper>
+        </Grid>
+        <Grid size={{ xs: 12, md: 6 }}>
+          <Paper variant="outlined" sx={{ p: 2, height: '100%' }}>
+            <Typography variant="subtitle1" gutterBottom>Achievements by month</Typography>
+            <MiniBars rows={byMonthBars} color="info.main" />
+          </Paper>
+        </Grid>
       </Grid>
 
       <Typography variant="h6" gutterBottom>Per-team breakdown</Typography>

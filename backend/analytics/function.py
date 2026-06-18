@@ -23,6 +23,10 @@ def route(request: Request) -> dict:
             return json_response(200, repo.get_summary())
         if segments == ["teams"]:
             return json_response(200, {"data": repo.get_team_analytics()})
+        if segments == ["achievements-by-month"]:
+            return json_response(200, {"data": repo.get_achievements_by_month()})
+        if segments == ["promotions"]:
+            return json_response(200, {"data": repo.get_promotion_readiness()})
 
     raise NotFoundError("No matching route for this request.")
 

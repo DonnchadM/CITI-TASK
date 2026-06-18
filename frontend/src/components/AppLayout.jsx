@@ -12,6 +12,7 @@ import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
+import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import LogoutIcon from '@mui/icons-material/Logout';
 import { useTheme } from '@mui/material/styles';
 import { Link as RouterLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
@@ -25,6 +26,7 @@ const NAV_ITEMS = [
   { label: 'People', icon: <PeopleIcon />, path: '/people' },
   { label: 'Teams', icon: <GroupsIcon />, path: '/teams' },
   { label: 'Achievements', icon: <EmojiEventsIcon />, path: '/achievements' },
+  { label: 'Promotions', icon: <TrendingUpIcon />, path: '/promotions' },
   { label: 'Ask the org', icon: <AutoAwesomeIcon />, path: '/assistant' },
   { label: 'Users', icon: <AdminPanelSettingsIcon />, path: '/admin/users', role: 'ADMIN' },
   { label: 'Profile', icon: <AccountCircleIcon />, path: '/profile' },
