@@ -1,28 +1,17 @@
-# Self-Assessment
+Self Assessment:
 
-A candid review of the Team Management submission: what's implemented, what the
-known issues are, and what I learned. The design rationale lives in
-[DESIGN.md](./DESIGN.md); this document grades the build against the requirements.
+What's implemented, known issues, and what I learned. Design rationale lives in DESIGN.md. This document checks the build against the requirements.
 
-## Overview
 
-A centralized team-management web application, built to answer seven
-organizational questions (team membership, locations, monthly achievements,
-leader co-location, non-direct-staff ratios, and reporting hierarchy). The design
-is driven backwards from those questions — the data model exists to make them
-answerable, and a single `team_analytics` SQL view is the source of truth for the
-metrics.
+Overview:
 
-**Stack (as required):** Python backend · PostgreSQL · React + React Responsive +
-Material UI frontend · AWS Serverless (S3 + CloudFront + Lambda + Aurora) via the
-repo's Terraform + shell scripts.
+A centralized team management web application that gives insight on team membership, locations, monthly achievements, leader co-location, non-direct-staff ratios, and reporting hierarchy. A single team_analytics SQL view is the source of truth for the metrics.
 
-**Architecture:** one Lambda per resource (`auth`, `people`, `teams`,
-`achievements`, `analytics`, `assistant`), auto-discovered by Terraform, with
-cross-cutting concerns (DB access, routing, validation, response/error envelopes,
-JWT auth + RBAC) factored into a shared module reused by every service.
+Stack: Python backend, PostgreSQL, React + React Responsive + Material UI frontend, AWS Serverless (S3 + CloudFront + Lambda + Aurora) via the repo's Terraform + shell scripts.
 
-## Requirements implemented
+Architecture: one Lambda per resource (auth, people, teams, achievements, analytics, assistant), auto-discovered by Terraform, with cross-cutting concerns (DB access, routing, validation, response/error envelopes, JWT auth + RBAC) factored into a shared module reused by every service.
+
+Requirements Implemented:
 
 | Requirement (from the workshop brief) | Status | Where |
 |---|---|---|
@@ -42,82 +31,21 @@ JWT auth + RBAC) factored into a shared module reused by every service.
 | Intelligent / AI features | ✅ | `assistant` service: Claude tool-use over read-only endpoints ("Ask the org") |
 | Deploy to AWS Serverless | ✅ | Backend (Aurora + Lambdas) and frontend (S3 + CloudFront) deployed and verified live |
 
-The seven organizational questions are answerable from the dashboard: four KPI
-cards (Q4–Q7) from `GET /analytics/summary` and a per-team table from
-`GET /analytics/teams`, with Q1–Q3 covered by the CRUD/search surface.
+The seven org questions are answerable from the dashboard: four KPI cards (Q4–Q7) from GET /analytics/summary and a per-team table from GET /analytics/teams, with Q1–Q3 covered by the CRUD/search surface.
 
-## Known issues & limitations
-
-- **Aurora cold-start.** Aurora Serverless v2 is configured to scale to zero, so
-  the first request after an idle period can time out and return a 500 (the
-  15-second DB connect timeout is shorter than a cold resume); it succeeds on
-  retry. Mitigations would be a non-zero `min_capacity` (higher cost) or a longer
-  connect timeout / connect-retry.
-- **AI assistant requires a key.** The `assistant` service needs an
-  `ANTHROPIC_API_KEY` (injected via `TF_VAR_anthropic_api_key`). Without one it
-  degrades gracefully to a `503 assistant_unavailable`. Long answers also approach
-  CloudFront's ~30s origin timeout, so the model runs at low effort with a capped
-  tool-call loop.
-- **AI assistant cannot reach Anthropic from the cloud (network constraint, not a
-  code defect).** The `assistant` Lambda runs inside the VPC because it needs
-  in-VPC access to Aurora. The workshop VPC provides no internet egress for
-  Lambdas: public subnets give a Lambda no public IP, and the private subnets have
-  no NAT gateway — verified directly, their route tables carry only a `local` route
-  plus S3/interface VPC endpoints, with no `0.0.0.0/0` to the internet. So
-  `api.anthropic.com` is unreachable and the call fails with the SDK's
-  `APIConnectionError` ("Connection error") after its retry/backoff (~18s, visible
-  in CloudWatch — the request never leaves the VPC, so nothing appears in the
-  Anthropic console). The service is fully functional on LocalStack (Docker has
-  egress) and verified end-to-end there with a real key. It would work in the cloud
-  with any Lambda internet path — a NAT gateway on the private subnets, or moving
-  the function out of the VPC and reaching data over the public Function URLs
-  instead of a direct DB connection. Both were judged out of scope for this
-  submission (NAT adds cost and is likely outside the participant role's
-  permissions; the out-of-VPC rework is a design change for an optional feature).
-- **Frontend bundle size.** The production bundle is a single ~700 KB chunk (MUI);
-  route-level code-splitting would reduce it. Functional, not yet optimized.
-- **PWA service worker is build-only.** It's disabled in `npm run dev` (to avoid
-  caching during development) and active in production builds; the offline
-  *indicator* works in dev.
-
-## Testing
-
-- **Backend** — `pytest` suite under [backend/tests/](../backend/tests): unit tests
-  for the shared layer (error→HTTP mapping, request parsing/validation, JWT + RBAC,
-  PBKDF2, Pydantic models) plus HTTP-integration tests that exercise the live
-  endpoints (auth flow, RBAC enforcement, token revocation, referential integrity,
-  and the analytics KPIs asserted against a crafted org).
-- **Frontend** — Vitest + React Testing Library + MSW (Vite-native, chosen over
-  Jest to share the build pipeline): component/behaviour tests for the permission
-  gating, API client (JWT inject + 401→refresh→retry), and key pages.
-- Both suites run in CI ([.github/workflows](../.github/workflows)) alongside the
-  Bandit / `npm audit` security checks.
-
-## What I learned
-
-- **Match the platform, not the textbook.** The "shared module" was first built as
-  a Lambda layer — clean and design-faithful — but the workshop's participant IAM
-  role isn't granted `lambda:PublishLayerVersion`, so it failed on real AWS
-  (LocalStack hadn't enforced it). Switching to vendoring the shared module into
-  each service's own package was a small, low-risk change because the application
-  code (`from shared import ...`) never changed — the mechanism was always a
-  packaging concern, not an application one.
-- **Native dependencies and the Lambda runtime.** `bcrypt`'s compiled wheel is
-  tied to the build host's glibc and wouldn't load in the older Lambda runtime, so
-  password hashing moved to stdlib PBKDF2-HMAC-SHA256 — no native code, identical
-  security properties, loads everywhere. `psycopg[binary]`, `pydantic_core`, and
-  the Anthropic SDK's `jiter` ship portable wheels and were fine; I verified each
-  in the deployed runtime rather than trusting a local import.
-- **Centralizing cross-cutting logic pays off.** Putting DB access, routing, the
-  response envelope, validation, and JWT/RBAC in one shared module meant each new
-  service was just `function.py` + `models.py` + `repository.py` — consistent,
-  and the fix for a whole-app concern (e.g. the dev proxy dropping the
-  `Authorization` header) lived in one place.
-- **The SQL view as a single source of truth.** Defining the per-team metrics once
-  in `team_analytics` made the KPI summary a trivial rollup and gave per-team
-  drill-down for free, keeping the metric definitions out of (and consistent
-  across) the Python and the UI.
-- **Verify in the real environment.** Several issues (the layer IAM block, the
-  Aurora cold-start, the proxy header) only surfaced on deploy/integration, not in
-  local unit-level checks — end-to-end verification caught what isolated tests
-  would have missed.
+Known issues & limitations
+Aurora cold-start. Aurora Serverless v2 scales to zero, so the first request after an idle period can time out with a 500 and then succeed on retry. A non-zero min_capacity or a longer connect timeout would resolve it.
+AI assistant needs a key. The assistant requires ANTHROPIC_API_KEY (set via TF_VAR_anthropic_api_key); without one it returns 503 assistant_unavailable. It runs at low effort with a capped tool-call loop to stay under CloudFront's ~30s origin timeout.
+AI assistant can't reach Anthropic from the cloud — an environment constraint, not a code defect. The assistant Lambda sits in the VPC for Aurora access, but the workshop VPC gives Lambdas no internet egress (no NAT on the private subnets; public subnets get no public IP), so api.anthropic.com is unreachable and it returns 503 assistant_unreachable. It runs end-to-end locally on LocalStack with a real key. A NAT gateway, or moving the function out of the VPC, would fix it — both out of scope here.
+Frontend bundle size. A single ~700 KB MUI chunk; route-level code-splitting would trim it. Functional, just not optimized.
+PWA service worker is build-only. Disabled in npm run dev to avoid caching; active in production. The offline indicator still works in dev.
+Testing
+Backend (pytest): unit tests for the shared layer (error→HTTP mapping, validation, JWT/RBAC, PBKDF2, models), plus integration tests over the live endpoints (auth, RBAC, token revocation, referential integrity, and the analytics KPIs against a seeded org).
+Frontend (Vitest + RTL + MSW): tests for permission gating, the API client (JWT inject + 401→refresh→retry), and key pages.
+Both run in CI alongside the Bandit and npm audit checks.
+What I learned
+Match the platform, not the textbook. The shared module started as a Lambda layer, but the participant role can't publish layers, so it failed on AWS (LocalStack hadn't enforced it). Vendoring it into each service was a low-risk fix — the app code never changed; it was always just a packaging concern.
+Native deps and the Lambda runtime. bcrypt's compiled wheel wouldn't load in the runtime, so hashing moved to stdlib PBKDF2 — same security, no native code. I verified each dependency in the deployed runtime rather than trusting a local import.
+Centralizing cross-cutting logic pays off. With DB access, routing, validation, and JWT/RBAC in one shared module, each service was just function.py + models.py + repository.py, and whole-app fixes (like the dev proxy dropping the Authorization header) lived in one place.
+One SQL view as the source of truth. Defining the per-team metrics once in team_analytics made the KPI summary a trivial rollup and gave per-team drill-down for free.
+Verify in the real environment. The layer IAM block, the cold-start, and the proxy header all surfaced on deploy — not in local unit checks.
