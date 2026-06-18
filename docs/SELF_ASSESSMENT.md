@@ -31,6 +31,8 @@ Requirements Implemented:
 | Intelligent / AI features | ✅ | `assistant` service: Claude tool-use over read-only endpoints ("Ask the org") |
 | Deploy to AWS Serverless | ✅ | Backend (Aurora + Lambdas) and frontend (S3 + CloudFront) deployed and verified live |
 
+The dashboard also surfaces a quick performance overview alongside the structural KPIs: two activity cards (total achievements and achievements this month) from GET /analytics/summary, and a per-team achievement count in the breakdown table from GET /analytics/teams. This makes Q3 (monthly team achievements) visible at a glance rather than only through search, turning the dashboard into a basic read on which teams are delivering. The per-team count is joined in as a pre-aggregated subquery rather than added to the team_analytics view, so it doesn't fan out and distort the membership-based metrics.
+
 The seven org questions are answerable from the dashboard: four KPI cards (Q4–Q7) from GET /analytics/summary and a per-team table from GET /analytics/teams, with Q1–Q3 covered by the CRUD/search surface.
 
 Known issues & limitations:
