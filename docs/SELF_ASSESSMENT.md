@@ -33,19 +33,29 @@ Requirements Implemented:
 
 The seven org questions are answerable from the dashboard: four KPI cards (Q4–Q7) from GET /analytics/summary and a per-team table from GET /analytics/teams, with Q1–Q3 covered by the CRUD/search surface.
 
-Known issues & limitations
+Known issues & limitations:
 Aurora cold-start. Aurora Serverless v2 scales to zero, so the first request after an idle period can time out with a 500 and then succeed on retry. A non-zero min_capacity or a longer connect timeout would resolve it.
+
 AI assistant needs a key. The assistant requires ANTHROPIC_API_KEY (set via TF_VAR_anthropic_api_key); without one it returns 503 assistant_unavailable. It runs at low effort with a capped tool-call loop to stay under CloudFront's ~30s origin timeout.
-AI assistant can't reach Anthropic from the cloud — an environment constraint, not a code defect. The assistant Lambda sits in the VPC for Aurora access, but the workshop VPC gives Lambdas no internet egress (no NAT on the private subnets; public subnets get no public IP), so api.anthropic.com is unreachable and it returns 503 assistant_unreachable. It runs end-to-end locally on LocalStack with a real key. A NAT gateway, or moving the function out of the VPC, would fix it — both out of scope here.
+
+AI assistant can't reach Anthropic from the cloud, an environment constraint, not a code defect. The assistant Lambda sits in the VPC for Aurora access, but the workshop VPC gives Lambdas no internet egress (no NAT on the private subnets; public subnets get no public IP), so api.anthropic.com is unreachable and it returns 503 assistant_unreachable. It runs end-to-end locally on LocalStack with a real key. A NAT gateway, or moving the function out of the VPC, would fix it, both out of scope here.
+
 Frontend bundle size. A single ~700 KB MUI chunk; route-level code-splitting would trim it. Functional, just not optimized.
+
 PWA service worker is build-only. Disabled in npm run dev to avoid caching; active in production. The offline indicator still works in dev.
 Testing
+
 Backend (pytest): unit tests for the shared layer (error→HTTP mapping, validation, JWT/RBAC, PBKDF2, models), plus integration tests over the live endpoints (auth, RBAC, token revocation, referential integrity, and the analytics KPIs against a seeded org).
+
 Frontend (Vitest + RTL + MSW): tests for permission gating, the API client (JWT inject + 401→refresh→retry), and key pages.
 Both run in CI alongside the Bandit and npm audit checks.
-What I learned
-Match the platform, not the textbook. The shared module started as a Lambda layer, but the participant role can't publish layers, so it failed on AWS (LocalStack hadn't enforced it). Vendoring it into each service was a low-risk fix — the app code never changed; it was always just a packaging concern.
-Native deps and the Lambda runtime. bcrypt's compiled wheel wouldn't load in the runtime, so hashing moved to stdlib PBKDF2 — same security, no native code. I verified each dependency in the deployed runtime rather than trusting a local import.
+
+What I learned:
+Match the platform, not the textbook. The shared module started as a Lambda layer, but the participant role can't publish layers, so it failed on AWS (LocalStack hadn't enforced it). Vendoring it into each service was a low-risk fix, the app code never changed; it was always just a packaging concern.
+
+Native deps and the Lambda runtime. bcrypt's compiled wheel wouldn't load in the runtime, so hashing moved to stdlib PBKDF2, same security, no native code. I verified each dependency in the deployed runtime rather than trusting a local import.
+
 Centralizing cross-cutting logic pays off. With DB access, routing, validation, and JWT/RBAC in one shared module, each service was just function.py + models.py + repository.py, and whole-app fixes (like the dev proxy dropping the Authorization header) lived in one place.
+
 One SQL view as the source of truth. Defining the per-team metrics once in team_analytics made the KPI summary a trivial rollup and gave per-team drill-down for free.
-Verify in the real environment. The layer IAM block, the cold-start, and the proxy header all surfaced on deploy — not in local unit checks.
+Verify in the real environment. The layer IAM block, the cold-start, and the proxy header all surfaced on deploy, not in local unit checks.
